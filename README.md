@@ -78,7 +78,7 @@ changegraph/
 │       ├── test_impact.py
 │       └── test_repository.py
 │
-├── frontend/                         # Phase 4 — React/Vite UI (planned)
+├── frontend/                         # Phase 3 — React/Vite Change Impact Report UI
 │
 ├── sample_repos/
 │   └── test_shop/                    # Synthetic demo repository
@@ -163,6 +163,16 @@ Then POST to `http://localhost:8000/api/analyze`:
   "change_request": "Add discount support to checkout"
 }
 ```
+
+### Run the Phase 3 report UI
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The report UI runs at `http://localhost:5173` and expects the FastAPI server at `http://localhost:8000`. Set `VITE_API_URL` to use a different API origin.
 
 ---
 
