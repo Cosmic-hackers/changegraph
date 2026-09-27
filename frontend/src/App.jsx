@@ -120,7 +120,32 @@ function Overview({ analysis, intelligence }) {
 function Metric({ label, value, icon }) { return <div className="metric"><span className="metric-icon">{icon}</span><span><strong>{value}</strong><small>{label}</small></span></div> }
 function Section({ title, icon, source, children }) { return <section className="report-section"><div className="section-heading"><h3>{icon}{title}</h3><span className={`source-tag ${source.includes('AI') ? 'mixed' : 'deterministic'}`}>{source}</span></div>{children}</section> }
 
-function FileList({ files, changed }) { return <div className="file-list">{files.length ? files.map((file) => { const target = changed.find((component) => component.file_path === file); return <div className="file-row" key={file}><FileCode2 size={16} /><span className="file-name">{file}</span>{target && <span className="function-pill">{target.symbol}</span>}<ChevronRight size={15} /></div> }) : <EmptyInline text="No affected files were detected." />}</div> }
+function FileRow({ file, target }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="file-row-wrap">
+      <button className="file-row" onClick={() => target && setOpen(!open)} style={target ? {cursor:'pointer'} : {cursor:'default'}}>
+        <FileCode2 size={16} />
+        <span className="file-name">{file}</span>
+        {target && <span className="function-pill">{target.symbol}</span>}
+        {target ? (open ? <ChevronDown size={15} /> : <ChevronRight size={15} />) : <ChevronRight size={15} style={{opacity:0.2}} />}
+      </button>
+      {open && target && (
+        <div className="file-row-detail">
+          <div className="file-row-detail-row"><Code2 size={13} /><span className="file-row-module">{target.module}</span><span className="muted">/ {target.file_path}</span></div>
+          {target.reason && <p className="file-row-reason">{target.reason}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FileList({ files, changed }) {
+  return <div className="file-list">{files.length ? files.map((file) => {
+    const target = changed.find((c) => c.file_path === file)
+    return <FileRow key={file} file={file} target={target} />
+  }) : <EmptyInline text="No affected files were detected." />}</div>
+}
 
 function ImpactList({ items }) { return items.length ? <div className="impact-list">{items.map((item) => <ImpactItem item={item} key={item.key} />)}</div> : <EmptyInline text="No impacted components in this category." /> }
 function ImpactItem({ item }) { const [open, setOpen] = useState(false); return <div className="impact-item"><button className="impact-toggle" onClick={() => setOpen(!open)}>{open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}<span className="impact-name">{item.name}</span><span className="node-type">{item.node_type}</span><span className="depth">D{item.depth}</span></button>{open && <div className="impact-detail"><div><Code2 size={14} /> {item.module} <span className="muted">/ {item.file_path}</span></div><p>{item.explanation}</p>{item.path?.length > 0 && <div className="path-line">{item.path.join('  →  ')}</div>}</div>}</div> }

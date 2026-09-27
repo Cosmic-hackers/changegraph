@@ -55,8 +55,13 @@ class ImpactAgent:
             "Output your answer strictly in valid JSON matching the required schema."
         )
 
+        # Strip raw PR diff from the prompt — keep only the human-readable title
+        raw_cr = input_data.change_request or ""
+        pipe_idx = raw_cr.find(" | ")
+        clean_cr = (raw_cr[:pipe_idx] if pipe_idx > 0 else raw_cr)[:200]
+
         facts_summary = {
-            "change_request": input_data.change_request,
+            "change_request": clean_cr,
             "changed_components": [
                 {"symbol": c.symbol, "module": c.module, "reason": c.reason}
                 for c in input_data.changed_components

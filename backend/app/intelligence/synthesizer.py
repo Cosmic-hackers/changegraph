@@ -77,6 +77,15 @@ class SynthesisAgent:
             warnings=list(input_data.warnings),
         )
 
+    @staticmethod
+    def _clean_change_request(change_request: str) -> str:
+        """Strip raw PR diff noise — keep only the human-readable title part."""
+        if not change_request:
+            return change_request
+        pipe_idx = change_request.find(" | ")
+        clean = change_request[:pipe_idx] if pipe_idx > 0 else change_request
+        return clean[:120] + "…" if len(clean) > 120 else clean
+
     def _generate_executive_summary(
         self,
         input_data: IntelligenceInput,
@@ -86,15 +95,21 @@ class SynthesisAgent:
     ) -> str:
         changed_symbols = [c.symbol for c in input_data.changed_components]
         target_str = ", ".join(changed_symbols) if changed_symbols else "selected components"
+        clean_request = self._clean_change_request(input_data.change_request)
 
         sensitive_str = ""
         if risk_out.sensitive_domains_identified:
             sensitive_str = f" Sensitive business domains impacted: {', '.join(risk_out.sensitive_domains_identified)}."
 
+        risk_reasons_str = ""
+        if risk_out.risk_justification:
+            risk_reasons_str = f" {risk_out.risk_justification[0]}"
+
         return (
-            f"ChangeGraph Impact Assessment: Proposed modification '{input_data.change_request}' targets {target_str}. "
-            f"The change carries a {risk_out.assessed_risk_level} risk level due to "
-            f"{len(input_data.direct_impact)} direct and {len(input_data.indirect_impact)} transitive dependent(s).{sensitive_str} "
+            f"Proposed change: \"{clean_request}\".\n\n"
+            f"Targets {len(changed_symbols)} symbol(s): {target_str}.\n\n"
+            f"Risk level: {risk_out.assessed_risk_level} — "
+            f"{len(input_data.direct_impact)} direct and {len(input_data.indirect_impact)} transitive dependent(s) identified.{risk_reasons_str}{sensitive_str}\n\n"
             f"{len(test_out.recommended_suites)} test suite(s) should be executed before deployment."
         )
 
