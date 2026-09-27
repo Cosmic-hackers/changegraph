@@ -26,14 +26,15 @@ _ORDERS: dict[int, dict] = {}
 _ORDER_COUNTER = 0
 
 
-def calculate_total(cart_items: list[dict]) -> float:
+def calculate_total(cart_items: list[dict], discount_percent: float = 0.0) -> float:
     """
     Calculate the total price for a list of cart items.
 
     Each item must have 'product_id' and 'quantity' keys.
     Raises ValueError if a product is not found.
 
-    This is the core pricing function.  Any change here directly
+    Optional discount_percent (0-100) is applied to the final total.
+    This is the core pricing function. Any change here directly
     affects invoice generation, refund calculations, and payment amounts.
     """
     total = 0.0
@@ -42,6 +43,8 @@ def calculate_total(cart_items: list[dict]) -> float:
         if price is None:
             raise ValueError(f"Product {item['product_id']} not found")
         total += price * item["quantity"]
+    if discount_percent > 0.0:
+        total = total * (1 - discount_percent / 100)
     return round(total, 2)
 
 
@@ -50,12 +53,13 @@ def apply_discount(total: float, discount_code: Optional[str]) -> float:
     Apply a discount code to a total.
 
     Known codes:
-      SAVE10 — 10% off
-      SAVE20 — 20% off
+      SAVE10 - 10% off
+      SAVE20 - 20% off
+      SAVE30 - 30% off (new)
 
     Returns the discounted total (or the original total if code is invalid).
     """
-    discounts = {"SAVE10": 0.10, "SAVE20": 0.20}
+    discounts = {"SAVE10": 0.10, "SAVE20": 0.20, "SAVE30": 0.30}
     if discount_code and discount_code in discounts:
         return round(total * (1 - discounts[discount_code]), 2)
     return total
@@ -70,9 +74,7 @@ def validate_cart(cart_items: list[dict]) -> list[str]:
     errors = []
     for item in cart_items:
         if not check_stock(item["product_id"], item["quantity"]):
-            errors.append(
-                f"Insufficient stock for product {item['product_id']}"
-            )
+            errors.append(f"Insufficient stock for product {item['product_id']}")
     return errors
 
 
