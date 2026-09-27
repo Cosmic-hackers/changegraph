@@ -20,6 +20,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
 
 from app.analyzers.repository import RepositoryAnalyzer, AnalysisResult
 from app.analyzers.impact import ImpactedNode
+from app.intelligence.orchestrator import IntelligenceOrchestrator
+from app.intelligence.models import ChangeImpactReport
 
 try:
     from rich.console import Console
@@ -178,14 +180,75 @@ def render_report(result: AnalysisResult) -> None:
     if _RICH:
         console.print("\n")
         console.print(Panel(
-            "[dim]ChangeGraph · IBM Bob 2.0 · Phase 1 Analysis Complete[/]",
+            "[dim]ChangeGraph · Deterministic Analysis Complete[/]",
             style="dim",
             padding=(0, 2),
         ))
     else:
         print("\n─" * 30)
-        print(" ChangeGraph · Phase 1 Analysis Complete")
+        print(" ChangeGraph · Deterministic Analysis Complete")
         print("─" * 30)
+
+
+def render_intelligence_report(report: ChangeImpactReport) -> None:
+    """Render the Phase 2 IBM Bob AI Change Impact Report."""
+    if _RICH:
+        console.print(Panel(
+            "[bold white]ChangeGraph — IBM Bob Intelligence Report (Phase 2)[/]",
+            style="bold magenta",
+            padding=(0, 4),
+        ))
+    else:
+        print("╔══════════════════════════════════════════════════════╗")
+        print("║      ChangeGraph — IBM Bob Intelligence Report       ║")
+        print("╚══════════════════════════════════════════════════════╝")
+
+    # Executive Summary
+    _section("Executive Summary")
+    _print(f"  {report.executive_summary}")
+
+    # Affected Workflows
+    _section(f"Affected Workflows ({len(report.impact_reasoning.affected_workflows)})")
+    for wf in report.impact_reasoning.affected_workflows:
+        _print(f"  • [bold]{wf.workflow_name}[/] [{wf.criticality}]")
+        _print(f"    ↳ Chain: {wf.propagation_chain}")
+        _print(f"    ↳ {wf.impact_explanation}")
+
+    # Risk & Concrete Failure Scenarios
+    _section(f"Risk Assessment & Failure Scenarios (Level: {report.risk_analysis.assessed_risk_level})")
+    for scen in report.risk_analysis.failure_scenarios:
+        _print(f"  ⚠ [bold red]{scen.component}[/]: {scen.scenario_description}")
+        _print(f"    ↳ Potential Consequence: {scen.potential_consequence}")
+        _print(f"    ↳ Mitigation: [green]{scen.mitigation_advice}[/]")
+
+    # Recommended Test Strategy
+    _section(f"Targeted Test Strategy ({len(report.test_strategy.recommended_suites)} suite(s))")
+    for suite in report.test_strategy.recommended_suites:
+        _print(f"  • [{suite.priority}] [bold]{suite.test_module}[/] ({suite.test_file})")
+        _print(f"    ↳ {suite.rationale}")
+
+    if report.test_strategy.coverage_gaps:
+        _print("\n  [bold yellow]Coverage Gaps Identified:[/]")
+        for gap in report.test_strategy.coverage_gaps:
+            _print(f"  ⚠ {gap.component}: {gap.gap_description}")
+            _print(f"    ↳ Suggestion: {gap.suggested_test_scenario}")
+
+    # Step-by-Step Developer Actions
+    _section(f"Suggested Developer Actions ({len(report.suggested_developer_actions)} step(s))")
+    for act in report.suggested_developer_actions:
+        _print(f"  [{act.step}] [{act.action_type}] [bold]{act.target_component}[/]: {act.description}")
+
+    # Grounding & Evidence Audit
+    _section("Evidence & Grounding Audit")
+    audit = report.evidence
+    _print(f"  • Provider: [bold]{audit.ai_provider_used}[/] (Mode: {audit.generation_mode})")
+    _print(f"  • Facts Evaluated: {audit.deterministic_nodes_evaluated} nodes, {audit.deterministic_edges_evaluated} edges")
+    _print(f"  • Validated Symbols: {audit.validated_symbol_count} verified against AST")
+    filtered_cnt = len(audit.unverified_claims_filtered)
+    if filtered_cnt == 0:
+        _print("  • Hallucinations/Invented Dependencies Detected: [bold green]0 (100% grounded)[/]")
+    else:
+        _print(f"  • Unverified Claims Filtered: [bold yellow]{filtered_cnt}[/]")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -194,16 +257,17 @@ def render_report(result: AnalysisResult) -> None:
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage: python analyze.py <repository_path> \"<change_request>\"")
+        print("Usage: python analyze.py <repository_path> \"<change_request>\" [--ai]")
         print()
         print("Examples:")
         print('  python analyze.py ./sample_repos/test_shop "Change calculate_total to support discounts"')
-        print('  python analyze.py ./sample_repos/test_shop "Modify payment processing"')
-        print('  python analyze.py ./sample_repos/test_shop "Update authenticate_user in users.py"')
+        print('  python analyze.py ./sample_repos/test_shop "Change calculate_total to support discounts" --ai')
+        print('  python analyze.py ./sample_repos/test_shop "Modify payment processing" --ai')
         sys.exit(1)
 
     repo_path = sys.argv[1]
     change_request = sys.argv[2]
+    enable_ai = any(arg in sys.argv[3:] for arg in ("--ai", "-ai", "--bob", "-bob"))
 
     if not os.path.isdir(repo_path):
         print(f"Error: '{repo_path}' is not a directory.")
@@ -212,6 +276,11 @@ def main():
     analyzer = RepositoryAnalyzer(repo_path)
     result = analyzer.analyze(change_request)
     render_report(result)
+
+    if enable_ai:
+        orchestrator = IntelligenceOrchestrator()
+        ai_report = orchestrator.run_intelligence(result)
+        render_intelligence_report(ai_report)
 
 
 if __name__ == "__main__":

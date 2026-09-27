@@ -9,8 +9,8 @@ from .api.analyze import router as analyze_router
 
 app = FastAPI(
     title="ChangeGraph API",
-    description="AI-powered GitHub Change Impact Analyzer — Phase 1",
-    version="0.1.0",
+    description="AI-powered GitHub Change Impact Analyzer — Phase 1 & Phase 2 (IBM Bob Intelligence)",
+    version="0.2.0",
 )
 
 app.add_middleware(

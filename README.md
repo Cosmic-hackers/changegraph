@@ -115,26 +115,30 @@ changegraph/
 pip install -r requirements.txt
 ```
 
-### Run the analyzer
+### Run the analyzer (Phase 1 CLI & Phase 2 Intelligence)
 
 ```bash
+# Phase 1: Deterministic impact report
 python analyze.py ./sample_repos/test_shop "Change calculate_total to support discounts"
+
+# Phase 2: Add IBM Bob Intelligence reasoning layer
+python analyze.py ./sample_repos/test_shop "Change calculate_total to support discounts" --ai
 ```
 
 ### More scenarios
 
 ```bash
-# Scenario 2: Modify payment processing
-python analyze.py ./sample_repos/test_shop "Modify payment processing"
+# Scenario 2: Modify payment processing (with AI reasoning)
+python analyze.py ./sample_repos/test_shop "Modify payment processing" --ai
 
 # Scenario 3: Modify authentication
-python analyze.py ./sample_repos/test_shop "Update authenticate_user in users.py"
+python analyze.py ./sample_repos/test_shop "Update authenticate_user in users.py" --ai
 
 # Scenario 4: Modify a product model
 python analyze.py ./sample_repos/test_shop "Change product price field"
 
 # Scenario 5: Modify refund logic
-python analyze.py ./sample_repos/test_shop "Update process_refund logic"
+python analyze.py ./sample_repos/test_shop "Update process_refund logic" --ai
 ```
 
 ### Run tests
@@ -143,7 +147,7 @@ python analyze.py ./sample_repos/test_shop "Update process_refund logic"
 pytest
 ```
 
-Expected: **52 passed**
+Expected: **68 passed** (52 Phase 1 deterministic tests + 16 Phase 2 intelligence layer tests)
 
 ### Start the API server
 
@@ -282,9 +286,38 @@ Every impacted node includes a dependency chain explanation:
 }
 ```
 
+### `POST /api/analyze/intelligence`
+
+Runs the IBM Bob Intelligence Layer over the repository or over a pre-computed Phase 1 analysis.
+
+**Option A (End-to-End):**
+```json
+{
+  "repository": "./sample_repos/test_shop",
+  "change_request": "Change calculate_total to support discounts"
+}
+```
+
+**Option B (From Phase 1 Analysis):**
+```json
+{
+  "analysis": { ... }
+}
+```
+
+**Response:**
+Returns the unified `ChangeImpactReport` with:
+- `executive_summary`
+- `impact_reasoning` (affected workflows, propagation chains)
+- `risk_analysis` (assessed risk level, failure scenarios, sensitive domains)
+- `test_strategy` (recommended suites, coverage gaps, regression scenarios)
+- `history_context` (high churn files, co-change patterns)
+- `suggested_developer_actions` (ordered step-by-step checklist)
+- `evidence` (facts evaluated, unverified claims filtered count, zero-hallucination verification)
+
 ### `GET /health`
 
-Returns `{"status": "ok", "version": "0.1.0"}`
+Returns `{"status": "ok", "version": "0.2.0"}`
 
 ---
 
@@ -293,11 +326,10 @@ Returns `{"status": "ok", "version": "0.1.0"}`
 | Phase | Status | Description |
 |-------|--------|-------------|
 | 1 | ✅ **Complete** | Deterministic Python AST repository analyzer + CLI |
-| 2 | 🔜 | Natural language change analysis |
+| 2 | ✅ **Complete** | IBM Bob Intelligence Layer (Impact, Risk, Test, History & Synthesis agents) |
 | 3 | 🔜 | GitHub PR support (URL + PR number) |
 | 4 | 🔜 | Impact Report web UI (React + React Flow) |
-| 5 | 🔜 | IBM Bob reasoning agents (Impact / Risk / Test / History) |
-| 6 | 🔜 | Optional Bob implementation after approval |
+| 5 | 🔜 | Optional Bob implementation after approval & automated change verification |
 
 ---
 

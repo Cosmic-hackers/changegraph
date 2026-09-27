@@ -38,6 +38,30 @@ class TestFileOut(BaseModel):
     matched_functions: list[str]
 
 
+class GitCommitOut(BaseModel):
+    sha: str
+    message: str
+    author: str
+    date: str
+    files_changed: list[str] = []
+
+
+class FileHistoryOut(BaseModel):
+    file_path: str
+    relative_path: str
+    churn_score: int = 0
+    authors: list[str] = []
+    commits: list[GitCommitOut] = []
+
+
+class GitContextOut(BaseModel):
+    repo_root: str
+    git_available: bool = True
+    file_histories: dict[str, FileHistoryOut] = {}
+    co_changed_pairs: list[list] = []
+    error: Optional[str] = None
+
+
 class AnalyzeResponse(BaseModel):
     repository_path: str
     change_request: str
@@ -51,3 +75,15 @@ class AnalyzeResponse(BaseModel):
     dependency_paths: list[list[str]]
     graph_summary: dict
     warnings: list[str]
+    git_context: Optional[GitContextOut] = None
+
+
+class IntelligenceAnalyzeRequest(BaseModel):
+    """
+    Request model for POST /api/analyze/intelligence.
+    Supports either passing pre-computed Phase 1 'analysis',
+    or providing 'repository' + 'change_request' to run Phase 1 + Phase 2 end-to-end.
+    """
+    analysis: Optional[AnalyzeResponse] = None
+    repository: Optional[str] = None
+    change_request: Optional[str] = None
