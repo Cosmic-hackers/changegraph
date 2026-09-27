@@ -6,6 +6,8 @@ from __future__ import annotations
 from typing import Optional
 from pydantic import BaseModel
 
+from ..intelligence.models import ChangeImpactReport
+
 
 class AnalyzeRequest(BaseModel):
     repository: str
@@ -79,11 +81,17 @@ class AnalyzeResponse(BaseModel):
 
 
 class IntelligenceAnalyzeRequest(BaseModel):
-    """
-    Request model for POST /api/analyze/intelligence.
-    Supports either passing pre-computed Phase 1 'analysis',
-    or providing 'repository' + 'change_request' to run Phase 1 + Phase 2 end-to-end.
-    """
     analysis: Optional[AnalyzeResponse] = None
     repository: Optional[str] = None
     change_request: Optional[str] = None
+
+
+class GitHubPRAnalyzeRequest(BaseModel):
+    repository: str
+    pull_request: int
+    include_history: bool = False
+
+
+class GitHubPRAnalyzeResponse(BaseModel):
+    analysis: AnalyzeResponse
+    intelligence: ChangeImpactReport
